@@ -1,0 +1,390 @@
+# SSSP Breakthrough - Git Ignore File
+# This file specifies intentionally untracked files that Git should ignore
+
+#==============================================================================
+# Build Artifacts
+#==============================================================================
+
+# CMake build directories
+build/
+Build/
+cmake-build-*/
+out/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+Makefile
+
+# Compiled Object files
+*.o
+*.obj
+*.ko
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.a
+*.lib
+*.la
+*.lo
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+#==============================================================================
+# IDE and Editor Files
+#==============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj
+*.vcxproj.filters
+
+# CLion / IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.cproject
+.project
+.settings/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw?
+Session.vim
+
+# Emacs
+*~
+\#*\#
+.\#*
+.dir-locals.el
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+#==============================================================================
+# Operating System Files
+#==============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+#==============================================================================
+# Project-Specific Generated Files
+#==============================================================================
+
+# Test output files
+test_graph.*
+test_*.txt
+test_*.dimacs
+test_*.dot
+test_*.png
+test_*.svg
+output.*
+sample_output.*
+
+# Graph visualization files (keep examples/sample_graph.txt)
+*.dot
+!examples/*.dot
+*.png
+*.svg
+*.pdf
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Report files
+reports/
+*.report
+
+# Benchmark results
+benchmarks/results/
+benchmark_*.txt
+benchmark_*.csv
+
+# Performance profiling
+gmon.out
+perf.data
+perf.data.old
+*.prof
+callgrind.out.*
+cachegrind.out.*
+massif.out.*
+
+# Memory leak detection
+valgrind-*.log
+*.memcheck
+
+#==============================================================================
+# Documentation Build Files
+#==============================================================================
+
+# Doxygen
+html/
+latex/
+man/
+Doxyfile.bak
+doxygen_warnings.txt
+
+# Sphinx
+_build/
+_static/
+_templates/
+
+#==============================================================================
+# Dependency and Package Managers
+#==============================================================================
+
+# Python (if used for scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.pytest_cache/
+.coverage
+*.cover
+.hypothesis/
+venv/
+ENV/
+env/
+pip-log.txt
+
+# Conan
+conan.lock
+conaninfo.txt
+conanbuildinfo.*
+graph_info.json
+
+# vcpkg
+vcpkg_installed/
+
+#==============================================================================
+# Temporary and Backup Files
+#==============================================================================
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+.claude
+tmp/
+temp/
+
+# Backup files
+*~
+*.orig
+*.rej
+
+# Core dumps
+core
+core.*
+vgcore.*
+
+#==============================================================================
+# Compression and Archives
+#==============================================================================
+
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.bz2
+*.xz
+
+#==============================================================================
+# Data Files (large datasets)
+#==============================================================================
+
+# Large graph files
+data/large/
+*.graph
+*.gr
+*.dimacs.gz
+
+# Dataset files
+datasets/
+*.csv.gz
+
+#==============================================================================
+# Generated Documentation
+#==============================================================================
+
+# PDF outputs from LaTeX
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+paper/*.pdf
+!paper/main.pdf
+
+#==============================================================================
+# Testing and Coverage
+#==============================================================================
+
+# Test executables
+test_*
+!tests/
+!src/*test*.c
+!examples/*test*.c
+
+# Coverage reports
+*.gcov
+*.gcda
+*.gcno
+coverage/
+lcov.info
+
+# Google Test
+googletest/
+gtest/
+
+#==============================================================================
+# Profiling and Analysis
+#==============================================================================
+
+# Address Sanitizer
+*.asan
+
+# Memory Sanitizer
+*.msan
+
+# Thread Sanitizer
+*.tsan
+
+# Undefined Behavior Sanitizer
+*.ubsan
+
+#==============================================================================
+# Installation Directories
+#==============================================================================
+
+# Local installation
+install/
+prefix/
+dist/
+
+#==============================================================================
+# Miscellaneous
+#==============================================================================
+
+# Tags files
+tags
+TAGS
+.tags
+.tags_sorted_by_file
+
+# ctags
+.ctags
+
+# cscope
+cscope.out
+cscope.in.out
+cscope.po.out
+
+# Environment files
+.env
+.env.local
+.envrc
+
+# Lock files
+*.lock
+!CMakeLists.txt
+
+# Generated graphs from examples (keep source code)
+examples/*.txt
+!examples/sample_graph.txt
+examples/*.png
+examples/*.svg
+examples/*.dot
+examples/output_*
+
+# Binary output directories
+bin/
+lib/
+
+#==============================================================================
+# Keep These Files
+#==============================================================================
+
+# Force include certain files even if matched above
+!.gitignore
+!.gitkeep
+!README.md
+!LICENSE
+!CONTRIBUTING.md
+!.github/
