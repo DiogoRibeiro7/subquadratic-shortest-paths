@@ -146,10 +146,3 @@ Duan, R., Mao, J., Mao, X., Shu, X., & Yin, L. (2025). Breaking the Sorting Barr
 
 This implementation is provided for educational and research purposes. Please cite the original paper when using this code.
 
-## Author
-
-Implementation by Claude (Anthropic) based on the theoretical work by Duan et al.
-
---------------------------------------------------------------------------------
-
-**Note**: This represents one of the most significant advances in shortest path algorithms in decades. The theoretical techniques introduced here may lead to improvements in many other graph problems.
