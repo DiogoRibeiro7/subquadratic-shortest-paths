@@ -1,0 +1,158 @@
+# Docker Compose configuration for multi-platform testing
+# Run with: docker-compose up --build
+
+version: '3.8'
+
+services:
+  # Ubuntu 22.04 with GCC
+  ubuntu-22-gcc:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+      args:
+        UBUNTU_VERSION: "22.04"
+    image: libsssp:ubuntu-22.04-gcc
+    environment:
+      - BUILD_TYPE=Release
+      - COMPILER=gcc
+      - RUN_TESTS=ON
+      - RUN_VALGRIND=OFF
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-ubuntu-gcc:/workspace/libsssp/build
+      - ccache-ubuntu:/ccache
+
+  # Ubuntu 22.04 with Clang
+  ubuntu-22-clang:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+      args:
+        UBUNTU_VERSION: "22.04"
+    image: libsssp:ubuntu-22.04-clang
+    environment:
+      - BUILD_TYPE=Release
+      - COMPILER=clang
+      - RUN_TESTS=ON
+      - RUN_VALGRIND=OFF
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-ubuntu-clang:/workspace/libsssp/build
+      - ccache-ubuntu:/ccache
+
+  # Ubuntu 22.04 with AddressSanitizer
+  ubuntu-22-asan:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+      args:
+        UBUNTU_VERSION: "22.04"
+    image: libsssp:ubuntu-22.04-asan
+    environment:
+      - BUILD_TYPE=Debug
+      - COMPILER=clang
+      - ENABLE_SANITIZERS=ASAN
+      - RUN_TESTS=ON
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-ubuntu-asan:/workspace/libsssp/build
+      - ccache-ubuntu:/ccache
+
+  # Ubuntu 22.04 with UndefinedBehaviorSanitizer
+  ubuntu-22-ubsan:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+      args:
+        UBUNTU_VERSION: "22.04"
+    image: libsssp:ubuntu-22.04-ubsan
+    environment:
+      - BUILD_TYPE=Debug
+      - COMPILER=clang
+      - ENABLE_SANITIZERS=UBSAN
+      - RUN_TESTS=ON
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-ubuntu-ubsan:/workspace/libsssp/build
+      - ccache-ubuntu:/ccache
+
+  # Ubuntu 20.04 (older version for compatibility)
+  ubuntu-20-gcc:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+      args:
+        UBUNTU_VERSION: "20.04"
+    image: libsssp:ubuntu-20.04-gcc
+    environment:
+      - BUILD_TYPE=Release
+      - COMPILER=gcc
+      - RUN_TESTS=ON
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-ubuntu20-gcc:/workspace/libsssp/build
+      - ccache-ubuntu20:/ccache
+
+  # Alpine Linux (musl libc)
+  alpine-gcc:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.alpine
+    image: libsssp:alpine-gcc
+    environment:
+      - BUILD_TYPE=Release
+      - COMPILER=gcc
+      - RUN_TESTS=ON
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-alpine-gcc:/workspace/libsssp/build
+      - ccache-alpine:/ccache
+
+  # Fedora (latest)
+  fedora-gcc:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.fedora
+      args:
+        FEDORA_VERSION: "39"
+    image: libsssp:fedora-39-gcc
+    environment:
+      - BUILD_TYPE=Release
+      - COMPILER=gcc
+      - RUN_TESTS=ON
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-fedora-gcc:/workspace/libsssp/build
+      - ccache-fedora:/ccache
+
+  # Fedora with Clang
+  fedora-clang:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.fedora
+      args:
+        FEDORA_VERSION: "39"
+    image: libsssp:fedora-39-clang
+    environment:
+      - BUILD_TYPE=Release
+      - COMPILER=clang
+      - RUN_TESTS=ON
+    volumes:
+      - ../:/workspace/libsssp:ro
+      - build-fedora-clang:/workspace/libsssp/build
+      - ccache-fedora:/ccache
+
+# Named volumes for build artifacts and ccache
+volumes:
+  build-ubuntu-gcc:
+  build-ubuntu-clang:
+  build-ubuntu-asan:
+  build-ubuntu-ubsan:
+  build-ubuntu20-gcc:
+  build-alpine-gcc:
+  build-fedora-gcc:
+  build-fedora-clang:
+  ccache-ubuntu:
+  ccache-ubuntu20:
+  ccache-alpine:
+  ccache-fedora:

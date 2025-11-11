@@ -1,0 +1,321 @@
+# GitHub Actions CI/CD workflow for libsssp
+# Builds and tests across multiple platforms and compilers
+
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ created ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  # ============================================================================
+  # Linux builds
+  # ============================================================================
+  linux:
+    name: ${{ matrix.os }} - ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04]
+        compiler: [gcc, clang]
+        include:
+          - os: ubuntu-20.04
+            compiler: gcc
+            cc: gcc-9
+            cxx: g++-9
+          - os: ubuntu-22.04
+            compiler: gcc
+            cc: gcc-11
+            cxx: g++-11
+          - os: ubuntu-20.04
+            compiler: clang
+            cc: clang-10
+            cxx: clang++-10
+          - os: ubuntu-22.04
+            compiler: clang
+            cc: clang-14
+            cxx: clang++-14
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          ninja-build \
+          pkg-config \
+          valgrind \
+          doxygen \
+          graphviz
+
+    - name: Configure CMake
+      env:
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DSSSP_BUILD_SHARED=ON \
+          -DSSSP_BUILD_STATIC=ON \
+          -DSSSP_BUILD_TESTS=ON \
+          -DSSSP_BUILD_EXAMPLES=ON \
+          -DSSSP_ENABLE_LTO=ON
+
+    - name: Build
+      run: cmake --build build --parallel $(nproc)
+
+    - name: Run tests
+      working-directory: ${{ github.workspace }}/build
+      run: ctest --output-on-failure --parallel $(nproc)
+
+    - name: Install
+      run: sudo cmake --install build --prefix /tmp/libsssp-install
+
+    - name: Verify installation
+      run: |
+        test -f /tmp/libsssp-install/include/sssp.h
+        test -f /tmp/libsssp-install/lib/libsssp.so || test -f /tmp/libsssp-install/lib/libsssp.a
+        pkg-config --modversion libsssp || true
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: libsssp-${{ matrix.os }}-${{ matrix.compiler }}
+        path: build/bin/*
+
+  # ============================================================================
+  # Sanitizer builds
+  # ============================================================================
+  sanitizers:
+    name: Sanitizers - ${{ matrix.sanitizer }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [asan, ubsan, tsan]
+        include:
+          - sanitizer: asan
+            cmake_flag: SSSP_ENABLE_ASAN
+          - sanitizer: ubsan
+            cmake_flag: SSSP_ENABLE_UBSAN
+          - sanitizer: tsan
+            cmake_flag: SSSP_ENABLE_TSAN
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build clang
+
+    - name: Configure CMake
+      env:
+        CC: clang-14
+        CXX: clang++-14
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -D${{ matrix.cmake_flag }}=ON \
+          -DSSSP_BUILD_TESTS=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests
+      working-directory: ${{ github.workspace }}/build
+      run: ctest --output-on-failure
+
+  # ============================================================================
+  # macOS builds
+  # ============================================================================
+  macos:
+    name: macOS - ${{ matrix.arch }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64, universal]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: brew install cmake ninja pkg-config
+
+    - name: Configure CMake
+      run: |
+        if [ "${{ matrix.arch }}" = "universal" ]; then
+          ARCH_FLAGS="-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64"
+        else
+          ARCH_FLAGS="-DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}"
+        fi
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          $ARCH_FLAGS \
+          -DSSSP_BUILD_SHARED=ON \
+          -DSSSP_BUILD_STATIC=ON \
+          -DSSSP_BUILD_TESTS=ON
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests (non-universal only)
+      if: matrix.arch != 'universal'
+      working-directory: ${{ github.workspace }}/build
+      run: ctest --output-on-failure
+
+  # ============================================================================
+  # Windows builds
+  # ============================================================================
+  windows:
+    name: Windows - ${{ matrix.toolset }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolset: [MSVC, MinGW]
+        include:
+          - toolset: MSVC
+            generator: "Visual Studio 17 2022"
+            arch: x64
+          - toolset: MinGW
+            generator: "MinGW Makefiles"
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup MSVC
+      if: matrix.toolset == 'MSVC'
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Setup MinGW
+      if: matrix.toolset == 'MinGW'
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+
+    - name: Configure CMake (MSVC)
+      if: matrix.toolset == 'MSVC'
+      run: |
+        cmake -B build `
+          -G "${{ matrix.generator }}" `
+          -A ${{ matrix.arch }} `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DSSSP_BUILD_SHARED=ON `
+          -DSSSP_BUILD_STATIC=ON `
+          -DSSSP_BUILD_TESTS=ON
+
+    - name: Configure CMake (MinGW)
+      if: matrix.toolset == 'MinGW'
+      shell: msys2 {0}
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DSSSP_BUILD_SHARED=ON \
+          -DSSSP_BUILD_STATIC=ON \
+          -DSSSP_BUILD_TESTS=ON
+
+    - name: Build (MSVC)
+      if: matrix.toolset == 'MSVC'
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+    - name: Build (MinGW)
+      if: matrix.toolset == 'MinGW'
+      shell: msys2 {0}
+      run: cmake --build build --parallel
+
+    - name: Run tests (MSVC)
+      if: matrix.toolset == 'MSVC'
+      working-directory: ${{ github.workspace }}/build
+      run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+    - name: Run tests (MinGW)
+      if: matrix.toolset == 'MinGW'
+      shell: msys2 {0}
+      working-directory: ${{ github.workspace }}/build
+      run: ctest --output-on-failure
+
+  # ============================================================================
+  # Package generation
+  # ============================================================================
+  package:
+    name: Create packages
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install packaging dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build rpm
+
+    - name: Build
+      run: |
+        cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        cmake --build build --parallel
+
+    - name: Create source package
+      working-directory: ${{ github.workspace }}/build
+      run: cpack -G TGZ --config CPackSourceConfig.cmake
+
+    - name: Create DEB package
+      working-directory: ${{ github.workspace }}/build
+      run: cpack -G DEB
+
+    - name: Create RPM package
+      working-directory: ${{ github.workspace }}/build
+      run: cpack -G RPM
+
+    - name: Upload packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: packages
+        path: |
+          build/*.tar.gz
+          build/*.deb
+          build/*.rpm
+
+  # ============================================================================
+  # Conan package test
+  # ============================================================================
+  conan:
+    name: Conan package test
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install Conan
+      run: pip install conan
+
+    - name: Create Conan package
+      run: conan create . --build=missing
+
+    - name: Test Conan package
+      run: conan test test_package libsssp/1.0.0@

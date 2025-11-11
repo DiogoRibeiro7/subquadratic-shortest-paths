@@ -108,6 +108,9 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size,
 /* Main single-source shortest path algorithm */
 void sssp_breakthrough(Graph* g, int source);
 
+/* Control verbosity of the algorithm output */
+void sssp_set_verbose(bool verbose);
+
 /* Utility functions */
 int floor_log_power(double x, double base);
 void print_distances(Graph* g);

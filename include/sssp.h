@@ -332,6 +332,107 @@ void sssp_result_destroy(sssp_result_t* result);
 /** @} */
 
 /**
+ * @defgroup ValidationAPI Graph Validation
+ * @brief Functions for validating graphs before solving SSSP
+ * @{
+ */
+
+/**
+ * @brief Check if graph contains a negative cycle
+ *
+ * Uses Bellman-Ford-style detection to identify negative cycles.
+ * This function should be called before sssp_solve() if the graph
+ * may contain negative edge weights.
+ *
+ * @param graph Pointer to graph structure (must not be NULL)
+ * @param cycle_vertices Output array to store vertices in the detected cycle (can be NULL)
+ * @param cycle_length Output parameter for cycle length (can be NULL)
+ * @return true if a negative cycle exists, false otherwise
+ *
+ * @note If cycle_vertices is provided, it must have space for at least num_vertices elements
+ * @see sssp_graph_validate()
+ */
+bool sssp_graph_has_negative_cycle(sssp_graph_t* graph, int* cycle_vertices, int* cycle_length);
+
+/**
+ * @brief Validate graph structure and properties
+ *
+ * Performs comprehensive validation including:
+ * - Checking for negative cycles
+ * - Verifying edge validity
+ * - Checking for self-loops with negative weights
+ * - Ensuring graph consistency
+ *
+ * @param graph Pointer to graph structure (must not be NULL)
+ * @param error_msg Buffer to receive error message (can be NULL)
+ * @param msg_size Size of error message buffer
+ * @return SSSP_SUCCESS if valid, error code otherwise
+ */
+sssp_status_t sssp_graph_validate(sssp_graph_t* graph, char* error_msg, size_t msg_size);
+
+/** @} */
+
+/**
+ * @defgroup IOApi Graph Import/Export
+ * @brief Functions for reading and writing graphs in standard formats
+ * @{
+ */
+
+/**
+ * @brief Load graph from edge list file
+ *
+ * File format (one edge per line):
+ *   num_vertices num_edges
+ *   from_vertex to_vertex weight
+ *   ...
+ *
+ * @param filename Path to input file
+ * @param error_msg Buffer for error message (can be NULL)
+ * @param msg_size Size of error buffer
+ * @return Pointer to loaded graph, or NULL on failure
+ *
+ * @note Vertices are assumed to be numbered from 0
+ * @see sssp_graph_save_edge_list()
+ */
+sssp_graph_t* sssp_graph_load_edge_list(const char* filename, char* error_msg, size_t msg_size);
+
+/**
+ * @brief Save graph to edge list file
+ *
+ * @param graph Pointer to graph structure (must not be NULL)
+ * @param filename Path to output file
+ * @return SSSP_SUCCESS on success, error code otherwise
+ *
+ * @see sssp_graph_load_edge_list()
+ */
+sssp_status_t sssp_graph_save_edge_list(const sssp_graph_t* graph, const char* filename);
+
+/**
+ * @brief Load graph from DIMACS format file
+ *
+ * Supports standard DIMACS shortest path problem format.
+ *
+ * @param filename Path to input file
+ * @param error_msg Buffer for error message (can be NULL)
+ * @param msg_size Size of error buffer
+ * @return Pointer to loaded graph, or NULL on failure
+ */
+sssp_graph_t* sssp_graph_load_dimacs(const char* filename, char* error_msg, size_t msg_size);
+
+/**
+ * @brief Export result to file
+ *
+ * Saves distances and paths to all reachable vertices.
+ *
+ * @param result Pointer to result structure (must not be NULL)
+ * @param filename Path to output file
+ * @return SSSP_SUCCESS on success, error code otherwise
+ */
+sssp_status_t sssp_result_export(const sssp_result_t* result, const char* filename);
+
+/** @} */
+
+/**
  * @defgroup UtilityAPI Utility Functions
  * @brief Helper functions for error handling and debugging
  * @{
@@ -342,6 +443,8 @@ void sssp_result_destroy(sssp_result_t* result);
  *
  * @param status Status code
  * @return Pointer to static string describing the error (never NULL)
+ *
+ * @note The returned string is statically allocated and should not be freed
  */
 const char* sssp_status_to_string(sssp_status_t status);
 
@@ -369,6 +472,52 @@ const char* sssp_get_version(void);
 const char* sssp_get_info(void);
 
 /** @} */
+
+/**
+ * @defgroup ThreadSafety Thread Safety
+ * @{
+ *
+ * @par Thread Safety Guarantees:
+ *
+ * - **Graph Creation/Destruction**: NOT thread-safe. Each graph must be
+ *   accessed by only one thread at a time.
+ *
+ * - **Graph Modification**: NOT thread-safe. Adding edges to a graph
+ *   while another thread is reading it will result in undefined behavior.
+ *
+ * - **SSSP Solving**: Thread-safe for different graphs. Multiple threads
+ *   can call sssp_solve() on different graph instances simultaneously.
+ *   However, solving SSSP on the same graph from multiple threads is
+ *   NOT thread-safe.
+ *
+ * - **Result Querying**: Thread-safe for read-only operations. Multiple
+ *   threads can query the same result structure simultaneously. Result
+ *   destruction is NOT thread-safe.
+ *
+ * @par Recommended Usage Pattern:
+ * @code
+ * // Thread A
+ * sssp_graph_t* graph_a = sssp_graph_create(100);
+ * // ... add edges ...
+ * sssp_result_t* result_a = sssp_solve(graph_a, 0);
+ *
+ * // Thread B (concurrent with Thread A)
+ * sssp_graph_t* graph_b = sssp_graph_create(200);
+ * // ... add edges ...
+ * sssp_result_t* result_b = sssp_solve(graph_b, 0);
+ * @endcode
+ *
+ * @par Memory Ownership:
+ * - Graphs created with sssp_graph_create() must be destroyed with
+ *   sssp_graph_destroy() by the same thread that created them.
+ *
+ * - Results returned by sssp_solve() must be destroyed with
+ *   sssp_result_destroy() by the owning thread.
+ *
+ * - Pointers returned by API functions (except strings) should not
+ *   be freed directly by the user.
+ *
+ * @} */
 
 #ifdef __cplusplus
 }

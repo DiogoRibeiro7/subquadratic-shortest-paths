@@ -1,0 +1,14 @@
+The package libsssp provides CMake targets:
+
+  find_package(libsssp CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE libsssp::libsssp)
+
+Alternatively, use pkg-config:
+
+  pkg-config --cflags --libs libsssp
+
+For shared library:
+  target_link_libraries(main PRIVATE libsssp::shared)
+
+For static library:
+  target_link_libraries(main PRIVATE libsssp::static)

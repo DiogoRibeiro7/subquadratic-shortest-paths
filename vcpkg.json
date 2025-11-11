@@ -1,0 +1,26 @@
+{
+  "name": "libsssp",
+  "version-string": "1.0.0",
+  "description": "High-performance O(m log^{2/3} n) Single-Source Shortest Paths algorithm implementing the breakthrough result from Duan et al. (2025)",
+  "homepage": "https://github.com/your-org/subquadratic-shortest-paths",
+  "license": "MIT",
+  "supports": "!(uwp)",
+  "dependencies": [],
+  "default-features": [
+    "core"
+  ],
+  "features": {
+    "core": {
+      "description": "Core SSSP library"
+    },
+    "tests": {
+      "description": "Build test suite"
+    },
+    "benchmarks": {
+      "description": "Build benchmark suite"
+    },
+    "examples": {
+      "description": "Build example programs"
+    }
+  }
+}

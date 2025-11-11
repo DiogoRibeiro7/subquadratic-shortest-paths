@@ -1,0 +1,107 @@
+# Dockerfile for building and testing libsssp on Ubuntu
+# Multi-stage build for optimized layers and caching
+
+# ============================================================================
+# Stage 1: Base environment with dependencies
+# ============================================================================
+ARG UBUNTU_VERSION=22.04
+FROM ubuntu:${UBUNTU_VERSION} AS base
+
+LABEL maintainer="sssp-dev@example.com"
+LABEL description="Ubuntu build environment for libsssp"
+LABEL version="1.1"
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install build dependencies in a single layer
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    pkg-config \
+    ninja-build \
+    ccache \
+    # Compilers
+    gcc \
+    g++ \
+    clang \
+    # Additional tools
+    valgrind \
+    gdb \
+    python3 \
+    python3-pip \
+    # Documentation
+    doxygen \
+    graphviz \
+    # Packaging
+    rpm \
+    debhelper \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Conan in a separate layer for better caching
+RUN pip3 install --no-cache-dir conan
+
+# Set up ccache for faster rebuilds
+ENV PATH="/usr/lib/ccache:${PATH}"
+ENV CCACHE_DIR=/ccache
+ENV CCACHE_SIZE=1G
+
+# Create build user (non-root)
+RUN useradd -m -s /bin/bash builder && \
+    mkdir -p /workspace /ccache && \
+    chown -R builder:builder /workspace /ccache
+
+# ============================================================================
+# Stage 2: Build stage
+# ============================================================================
+FROM base AS builder
+
+USER builder
+WORKDIR /workspace
+
+# Copy only necessary files first for better layer caching
+COPY --chown=builder:builder CMakeLists.txt VERSION ./libsssp/
+COPY --chown=builder:builder cmake ./libsssp/cmake/
+COPY --chown=builder:builder include ./libsssp/include/
+COPY --chown=builder:builder src ./libsssp/src/
+
+# Copy build script
+COPY --chown=builder:builder docker/scripts/build.sh /tmp/build.sh
+USER root
+RUN chmod +x /tmp/build.sh && mv /tmp/build.sh /usr/local/bin/build.sh
+USER builder
+
+# ============================================================================
+# Stage 3: Development stage (default)
+# ============================================================================
+FROM builder AS development
+
+# Copy remaining files (tests, examples, docs)
+COPY --chown=builder:builder . /workspace/libsssp/
+
+# Default command: build and test
+CMD ["/usr/local/bin/build.sh"]
+
+# ============================================================================
+# Stage 4: Runtime stage (minimal runtime image)
+# ============================================================================
+FROM ubuntu:${UBUNTU_VERSION} AS runtime
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libc6 \
+    libm-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy built libraries from builder stage
+COPY --from=builder /workspace/libsssp/install /usr/local
+
+# Create runtime user
+RUN useradd -m -s /bin/bash runtime
+USER runtime
+WORKDIR /home/runtime
+
+# Default command
+CMD ["/bin/bash"]

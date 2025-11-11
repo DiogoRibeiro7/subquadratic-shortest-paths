@@ -1,0 +1,40 @@
+# Dockerfile for building libsssp on Windows Server
+# Uses MSVC compiler toolchain
+
+# escape=`
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS builder
+
+LABEL description="Windows build environment for libsssp"
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Install Chocolatey
+RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Install build tools
+RUN choco install -y `
+    cmake --installargs 'ADD_CMAKE_TO_PATH=System' `
+    git `
+    ninja `
+    visualstudio2022buildtools `
+    visualstudio2022-workload-vctools
+
+# Install Python and Conan
+RUN choco install -y python3
+RUN pip install conan
+
+# Set up Visual Studio environment
+RUN setx /M PATH $($Env:PATH + ';C:\Program Files\CMake\bin')
+
+WORKDIR C:\workspace
+
+# Copy source code
+COPY . C:\workspace\libsssp
+
+# Build script
+COPY docker\scripts\build.ps1 C:\build.ps1
+
+# Default command: build and test
+CMD ["powershell", "-File", "C:\\build.ps1"]

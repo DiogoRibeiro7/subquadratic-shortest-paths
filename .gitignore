@@ -152,7 +152,6 @@ sample_output.*
 !examples/*.dot
 *.png
 *.svg
-*.pdf
 
 # Log files
 *.log
@@ -220,9 +219,18 @@ conan.lock
 conaninfo.txt
 conanbuildinfo.*
 graph_info.json
+test_package/build/
 
 # vcpkg
 vcpkg_installed/
+
+# CPack
+_CPack_Packages/
+*.dmg
+*.deb
+*.rpm
+*.nupkg
+*.msi
 
 #==============================================================================
 # Temporary and Backup Files
@@ -289,7 +297,6 @@ paper/*.log
 paper/*.out
 paper/*.synctex.gz
 paper/*.toc
-paper/*.pdf
 !paper/main.pdf
 
 #==============================================================================

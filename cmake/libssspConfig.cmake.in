@@ -1,0 +1,56 @@
+# libssspConfig.cmake - CMake package configuration file for libsssp
+# This file allows other CMake projects to find and use libsssp easily.
+#
+# Usage in other projects:
+#   find_package(libsssp 1.0 REQUIRED)
+#   target_link_libraries(my_app libsssp::libsssp)
+
+@PACKAGE_INIT@
+
+# Provide package version information
+set(libsssp_VERSION "@PROJECT_VERSION@")
+set(libsssp_VERSION_MAJOR "@PROJECT_VERSION_MAJOR@")
+set(libsssp_VERSION_MINOR "@PROJECT_VERSION_MINOR@")
+set(libsssp_VERSION_PATCH "@PROJECT_VERSION_PATCH@")
+
+# Compute paths
+set_and_check(libsssp_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+set_and_check(libsssp_LIBRARY_DIR "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
+
+# Legacy interface
+set(libsssp_INCLUDE_DIRS "${libsssp_INCLUDE_DIR}")
+set(libsssp_LIBRARIES "libsssp::libsssp")
+
+# Import the target files
+include("${CMAKE_CURRENT_LIST_DIR}/libssspTargets.cmake")
+
+# Check that requested components are available
+set(libsssp_FOUND TRUE)
+check_required_components(libsssp)
+
+# Provide information about available targets
+if(NOT TARGET libsssp::libsssp)
+    if(TARGET libsssp::shared)
+        set(libsssp_TYPE "shared")
+        add_library(libsssp::libsssp ALIAS libsssp::shared)
+    elseif(TARGET libsssp::static)
+        set(libsssp_TYPE "static")
+        add_library(libsssp::libsssp ALIAS libsssp::static)
+    else()
+        set(libsssp_FOUND FALSE)
+        set(libsssp_NOT_FOUND_MESSAGE "No libsssp library target found")
+    endif()
+endif()
+
+# Print configuration information
+if(NOT libsssp_FIND_QUIETLY)
+    message(STATUS "Found libsssp ${libsssp_VERSION}")
+    message(STATUS "  Include directories: ${libsssp_INCLUDE_DIRS}")
+    message(STATUS "  Library type: ${libsssp_TYPE}")
+endif()
+
+# Legacy variables for backward compatibility
+set(LIBSSSP_FOUND ${libsssp_FOUND})
+set(LIBSSSP_INCLUDE_DIRS ${libsssp_INCLUDE_DIRS})
+set(LIBSSSP_LIBRARIES ${libsssp_LIBRARIES})
+set(LIBSSSP_VERSION ${libsssp_VERSION})

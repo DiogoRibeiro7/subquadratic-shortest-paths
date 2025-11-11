@@ -1,0 +1,64 @@
+# Dockerfile for building and testing libsssp on Fedora
+# Uses DNF package manager and recent toolchain
+
+ARG FEDORA_VERSION=39
+FROM fedora:${FEDORA_VERSION}
+
+LABEL maintainer="sssp-dev@example.com"
+LABEL description="Fedora build environment for libsssp"
+LABEL version="1.0"
+
+# Install build dependencies
+RUN dnf install -y \
+    gcc \
+    gcc-c++ \
+    clang \
+    cmake \
+    ninja-build \
+    git \
+    pkgconfig \
+    ccache \
+    # Development tools
+    make \
+    automake \
+    autoconf \
+    libtool \
+    # Testing and debugging
+    valgrind \
+    gdb \
+    # Python and Conan
+    python3 \
+    python3-pip \
+    # Documentation
+    doxygen \
+    graphviz \
+    # Packaging
+    rpm-build \
+    rpmdevtools \
+    && dnf clean all
+
+# Install Conan
+RUN pip3 install --no-cache-dir conan
+
+# Set up ccache
+ENV PATH="/usr/lib64/ccache:${PATH}"
+ENV CCACHE_DIR=/ccache
+ENV CCACHE_SIZE=1G
+
+# Create build user
+RUN useradd -m -s /bin/bash builder && \
+    mkdir -p /workspace /ccache && \
+    chown -R builder:builder /workspace /ccache
+
+USER builder
+WORKDIR /workspace
+
+# Copy source code
+COPY --chown=builder:builder . /workspace/libsssp
+
+# Build script
+COPY --chown=builder:builder docker/scripts/build.sh /usr/local/bin/build.sh
+RUN chmod +x /usr/local/bin/build.sh
+
+# Default command
+CMD ["/usr/local/bin/build.sh"]
