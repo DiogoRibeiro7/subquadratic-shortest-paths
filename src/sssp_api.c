@@ -618,14 +618,6 @@ sssp_result_t* sssp_solve(sssp_graph_t* graph, int source) {
     return result;
 }
 
-sssp_result_t* sssp_solve_advanced(sssp_graph_t* graph, int source, int k, int t) {
-    /* For now, ignore custom parameters and use standard solve */
-    /* TODO: Integrate breakthrough algorithm with custom parameters */
-    (void)k;  /* Suppress unused parameter warning */
-    (void)t;
-    return sssp_solve(graph, source);
-}
-
 /* ============================================================================
  * RESULT QUERYING IMPLEMENTATION
  * ============================================================================ */

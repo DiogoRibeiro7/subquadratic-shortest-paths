@@ -14,7 +14,7 @@
  * - O(m * log n) [Dijkstra's Algorithm]
  * - O(m^k) [General Power Law]
  *
- * Based on: "Single-Source Shortest Paths in O(m^{1+epsilon}) Time" by Bernstein (2024)
+ * Based on: "Breaking the Sorting Barrier for Directed SSSP" by Duan et al. (2025)
  *
  * Build and run:
  *   cd build

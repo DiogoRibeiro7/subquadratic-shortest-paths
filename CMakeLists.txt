@@ -1,3 +1,50 @@
+# ==============================================================================
+# CMake Build System for SSSP Breakthrough Algorithm Library
+# ==============================================================================
+#
+# This is the main CMake configuration file for building the O(m log^{2/3} n)
+# single-source shortest paths library.
+#
+# QUICK START:
+#   mkdir build && cd build
+#   cmake ..
+#   make
+#   make test          # Run test suite
+#   make install       # Install library (may need sudo)
+#
+# BUILD OPTIONS:
+#   -DSSSP_BUILD_SHARED=ON/OFF       Build shared library (default: ON)
+#   -DSSSP_BUILD_STATIC=ON/OFF       Build static library (default: ON)
+#   -DSSSP_BUILD_TESTS=ON/OFF        Build test suite (default: ON)
+#   -DSSSP_BUILD_EXAMPLES=ON/OFF     Build examples (default: ON)
+#   -DSSSP_BUILD_DOCS=ON/OFF         Build documentation (default: OFF)
+#   -DSSSP_ENABLE_LTO=ON/OFF         Enable link-time optimization (default: OFF)
+#   -DSSSP_ENABLE_ASAN=ON/OFF        Enable AddressSanitizer (default: OFF)
+#   -DCMAKE_BUILD_TYPE=Release       Build type: Debug, Release, RelWithDebInfo
+#
+# EXAMPLES:
+#   # Release build with tests:
+#   cmake -DCMAKE_BUILD_TYPE=Release -DSSSP_BUILD_TESTS=ON ..
+#
+#   # Debug build with sanitizers:
+#   cmake -DCMAKE_BUILD_TYPE=Debug -DSSSP_ENABLE_ASAN=ON ..
+#
+#   # Optimized build with LTO:
+#   cmake -DCMAKE_BUILD_TYPE=Release -DSSSP_ENABLE_LTO=ON ..
+#
+# REQUIREMENTS:
+#   - CMake 3.15 or later
+#   - C99-compliant compiler (GCC, Clang, MSVC)
+#   - Math library (libm) on Unix systems
+#
+# OUTPUTS:
+#   Libraries:   build/lib/libsssp.so (or .a, .dll)
+#   Executables: build/bin/
+#   Tests:       build/bin/tests/
+#   Examples:    build/bin/examples/
+#
+# ==============================================================================
+
 cmake_minimum_required(VERSION 3.15)
 
 # Read version from file
@@ -251,15 +298,6 @@ endif()
 # Demo programs
 # ============================================================================
 if(SSSP_BUILD_DEMOS AND TARGET ${SSSP_DEFAULT_LIBRARY})
-    # API demo
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/demo_api.c")
-        add_executable(demo_api demo_api.c)
-        target_link_libraries(demo_api PRIVATE ${SSSP_DEFAULT_LIBRARY})
-        set_target_properties(demo_api PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-        )
-    endif()
-
     # SSSP demo
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/sssp_demo.c")
         add_executable(sssp_demo src/sssp_demo.c)
@@ -280,6 +318,13 @@ if(SSSP_BUILD_EXAMPLES AND TARGET ${SSSP_DEFAULT_LIBRARY})
         get_filename_component(EXAMPLE_NAME ${EXAMPLE_SOURCE} NAME_WE)
         add_executable(${EXAMPLE_NAME} ${EXAMPLE_SOURCE})
         target_link_libraries(${EXAMPLE_NAME} PRIVATE ${SSSP_DEFAULT_LIBRARY})
+
+        # Give examples access to internal headers for advanced usage
+        target_include_directories(${EXAMPLE_NAME} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+        )
+
         set_target_properties(${EXAMPLE_NAME} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/examples"
         )
@@ -340,7 +385,15 @@ if(SSSP_BUILD_TESTS AND TARGET ${SSSP_DEFAULT_LIBRARY})
         get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
         add_executable(${TEST_NAME} ${TEST_SOURCE})
         target_link_libraries(${TEST_NAME} PRIVATE ${SSSP_DEFAULT_LIBRARY})
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+        )
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+        set_tests_properties(${TEST_NAME} PROPERTIES
+            TIMEOUT 600
+            LABELS "test"
+        )
     endforeach()
 endif()
 

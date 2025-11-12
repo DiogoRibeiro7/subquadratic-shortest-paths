@@ -298,7 +298,8 @@ void test_negative_weights(void) {
 void test_comparison_with_dijkstra(void) {
     TEST("Comparison with Dijkstra");
 
-    Graph* g = graph_generate_random(&graph_gen_params_default(20, 40));
+    GraphGenParams params = graph_gen_params_default(20, 40);
+    Graph* g = graph_generate_random(&params);
     ASSERT_NOT_NULL(g);
 
     // Run breakthrough
@@ -603,7 +604,8 @@ void test_no_memory_leaks_large(void) {
     memory_reset_stats();
 
     for (int trial = 0; trial < 5; trial++) {
-        Graph* g = graph_generate_random(&graph_gen_params_default(100, 200));
+        GraphGenParams params = graph_gen_params_default(100, 200);
+        Graph* g = graph_generate_random(&params);
         ASSERT_NOT_NULL(g);
         sssp_breakthrough(g, 0);
         free_graph(g);
@@ -651,7 +653,8 @@ void test_random_graph_verification(void) {
     TEST("Random graph verification");
 
     for (int trial = 0; trial < 5; trial++) {
-        Graph* g = graph_generate_random(&graph_gen_params_default(30, 60));
+        GraphGenParams params = graph_gen_params_default(30, 60);
+        Graph* g = graph_generate_random(&params);
         ASSERT_NOT_NULL(g);
 
         sssp_breakthrough(g, 0);

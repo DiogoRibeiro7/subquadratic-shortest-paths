@@ -60,7 +60,7 @@ The libsssp build system is designed for:
 
 | Target | Source | Description |
 |--------|--------|-------------|
-| `demo_api` | `demo_api.c` | API demonstration |
+| `simple_example` | `examples/simple_example.c` | Simple API demonstration |
 | `sssp_demo` | `src/sssp_demo.c` | SSSP demo program |
 | `test_api` | `src/test_api.c` | API test suite |
 | `test_debug` | `src/test_debug.c` | Debug tests |

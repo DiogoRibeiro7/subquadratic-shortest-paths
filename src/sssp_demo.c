@@ -104,25 +104,27 @@ void dijkstra(Graph* g, int source) {
     free(visited);
 }
 
-/* Simplified breakthrough algorithm demonstrating key concepts */
+/* Demonstration comparing Dijkstra with breakthrough algorithm complexity */
 void sssp_breakthrough_simple(Graph* g, int source) {
-    printf("Running simplified O(m log^{2/3} n) breakthrough algorithm...\n");
-    
-    // For demonstration, we'll use regular Dijkstra but with the theoretical improvements
-    // In practice, the full implementation would use the sophisticated data structures
+    printf("Running Dijkstra's algorithm for comparison...\n");
+    printf("(For actual O(m log^{2/3} n) implementation, use the API or complete_implementation.c)\n\n");
+
+    // Run standard Dijkstra for comparison
     dijkstra(g, source);
-    
-    // Calculate theoretical complexity
+
+    // Calculate and display theoretical complexity comparison
     int n = g->n;
     int m = g->m;
-    
+
     double dijkstra_complexity = m + n * log(n);
     double breakthrough_complexity = m * pow(log(n), 2.0/3.0);
-    
-    printf("Theoretical complexities:\n");
-    printf("  Dijkstra: O(m + n log n) ≈ %.0f operations\n", dijkstra_complexity);
-    printf("  Breakthrough: O(m log^{2/3} n) ≈ %.0f operations\n", breakthrough_complexity);
-    printf("  Improvement factor: %.2fx\n", dijkstra_complexity / breakthrough_complexity);
+
+    printf("\nTheoretical complexity comparison:\n");
+    printf("  Dijkstra (this run):     O(m + n log n)      ≈ %.0f operations\n", dijkstra_complexity);
+    printf("  Breakthrough algorithm:  O(m log^{2/3} n)    ≈ %.0f operations\n", breakthrough_complexity);
+    printf("  Theoretical improvement: %.2fx faster\n", dijkstra_complexity / breakthrough_complexity);
+    printf("\nNote: This demo uses Dijkstra for simplicity. The actual breakthrough\n");
+    printf("      algorithm is available via the API (see examples/simple_example.c)\n");
 }
 
 void print_distances(Graph* g) {

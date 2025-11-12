@@ -1,0 +1,52 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "SSSP Breakthrough Algorithm: C Implementation"
+version: 1.0.0
+date-released: 2025-11-12
+url: "https://github.com/diogoribeiro7/subquadratic-shortest-paths"
+repository-code: "https://github.com/diogoribeiro7/subquadratic-shortest-paths"
+license: MIT
+authors:
+  - family-names: "Ribeiro"
+    given-names: "Diogo"
+    email: dfr@esmad.ipp.pt
+    affiliation: "ESMAD - Instituto Politecnico do Porto"
+    orcid: "https://orcid.org/0009-0001-2022-7072"
+keywords:
+  - shortest paths
+  - graph algorithms
+  - single-source shortest paths
+  - SSSP
+  - breakthrough algorithm
+  - subquadratic
+  - directed graphs
+abstract: >
+  C implementation of the breakthrough O(m log^(2/3) n) algorithm for
+  single-source shortest paths on directed graphs with non-negative edge
+  weights, based on the theoretical algorithm by Duan et al. (2025). This
+  implementation provides optimized data structures, cross-platform support,
+  and comprehensive testing for the first deterministic algorithm to break
+  the O(m + n log n) barrier established by Dijkstra's algorithm in 1959.
+references:
+  - type: article
+    title: "Breaking the Sorting Barrier for Directed Single-Source Shortest Paths"
+    authors:
+      - family-names: "Duan"
+        given-names: "Ran"
+      - family-names: "Mao"
+        given-names: "Jiayi"
+      - family-names: "Mao"
+        given-names: "Xiao"
+      - family-names: "Shu"
+        given-names: "Xinkai"
+      - family-names: "Yin"
+        given-names: "Longhui"
+    year: 2025
+    doi: "10.48550/arXiv.2504.17033"
+    url: "https://arxiv.org/abs/2504.17033"
+    journal: "arXiv"
+    identifiers:
+      - type: other
+        value: "arXiv:2504.17033"
+        description: "The arXiv preprint identifier"

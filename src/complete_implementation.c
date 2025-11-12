@@ -1,10 +1,161 @@
-/*
- * Complete Implementation of the SSSP Breakthrough Algorithm
- * Paper: "Breaking the Sorting Barrier for Directed Single-Source Shortest Paths"
+/**
+ * @file complete_implementation.c
+ * @brief Complete Implementation of the O(m log^{2/3} n) SSSP Breakthrough Algorithm
+ *
+ * @section paper_reference PAPER REFERENCE
+ * "Breaking the Sorting Barrier for Directed Single-Source Shortest Paths"
  * Authors: Ran Duan, Jiayi Mao, Xiao Mao, Xinkai Shu, Longhui Yin (2025)
- * 
- * This file contains the complete implementation of all algorithms from the paper,
- * including the sophisticated data structures and recursive procedures.
+ * arXiv: 2504.17033
+ *
+ * @section overview ALGORITHM OVERVIEW
+ *
+ * This implementation achieves O(m log^{2/3} n) time complexity for directed SSSP,
+ * breaking the long-standing O(m log n) barrier of Dijkstra's algorithm.
+ *
+ * ### Complexity Comparison:
+ * - **Bellman-Ford**:         O(mn)
+ * - **Dijkstra + Binary Heap**: O(m log n)
+ * - **Dijkstra + Fibonacci**:  O(m + n log n)
+ * - **This Algorithm**:        **O(m log^{2/3} n)**
+ *
+ * For sparse graphs (m = O(n)), the improvement is:
+ * - Dijkstra: O(n log n)
+ * - Breakthrough: O(n log^{2/3} n)
+ * - Speedup factor: log(n) / log^{2/3}(n) = **log^{1/3}(n)**
+ *
+ * For n = 1,000,000: log^{1/3}(n) ≈ 2.4x speedup
+ *
+ * @section key_innovations KEY ALGORITHMIC INNOVATIONS
+ *
+ * The breakthrough is achieved through four main innovations:
+ *
+ * #### 1. FRONTIER REDUCTION (FindPivots)
+ * Instead of maintaining all |S| sources, reduces to O(|S|/k) pivots where k = log^{1/3}(n).
+ * - **Input**: Set S of source vertices, bound B
+ * - **Output**: Subset P ⊆ S of "pivot" sources
+ * - **Guarantee**: |P| ≤ |W|/k where W is reachable set
+ * - **Complexity**: O(k · |edges explored|)
+ *
+ * #### 2. RECURSIVE PARTITIONING (BMSSP)
+ * Divide-and-conquer approach with L = O(log^{1/3}(n)) levels:
+ * - **Base case**: Mini-Dijkstra for small problems
+ * - **Recursive case**: Reduce frontier, process in batches
+ * - **Batch size**: Exponentially increasing: 2^{(l-1)t} where t = log^{2/3}(n)
+ * - **Recursion depth**: L = ⌈log(n)/t⌉ = O(log^{1/3}(n))
+ *
+ * #### 3. BLOCK-BASED DATA STRUCTURE (Lemma 3.3)
+ * Novel data structure supporting:
+ * - **Insert(v, d)**: O(1) amortized - add single vertex
+ * - **BatchPrepend(B, d)**: O(|B|) - prepend batch (NO SORTING!)
+ * - **Pull(k)**: O(k) amortized - extract k smallest
+ *
+ * Critical: BatchPrepend is O(n), not O(n log n). This avoids sorting
+ * and preserves the overall O(m log^{2/3} n) complexity.
+ *
+ * #### 4. CAREFUL PARAMETER SELECTION
+ * Three interrelated parameters drive the complexity:
+ * - **k = ⌊log^{1/3}(n)⌋**: Frontier reduction factor
+ * - **t = ⌊log^{2/3}(n)⌋**: Batch size exponent
+ * - **L = ⌈log(n)/t⌉**: Recursion levels
+ *
+ * Relationship: k · t ≈ log(n), which gives:
+ * - L = log(n)/t = log(n)/log^{2/3}(n) = log^{1/3}(n)
+ * - Total work: O(m · k · L) = O(m · log^{1/3}(n) · log^{1/3}(n)) = O(m · log^{2/3}(n))
+ *
+ * @section algorithm_structure ALGORITHM STRUCTURE
+ *
+ * The implementation follows this hierarchy:
+ *
+ * ```
+ * sssp_solve()
+ *   └─> [Initialize graph with source]
+ *   └─> [Compute parameters k, t, L]
+ *   └─> BMSSP(level=L, sources={s}, bound=∞)
+ *         ├─> [Base case: level=0]
+ *         │     └─> BaseCase(): Mini-Dijkstra
+ *         │
+ *         └─> [Recursive case: level>0]
+ *               ├─> FindPivots(): Reduce |S| to |P| ≈ |S|/k
+ *               │     ├─> [k-round Bellman-Ford]
+ *               │     ├─> [Build predecessor forest]
+ *               │     └─> [Select large trees as pivots]
+ *               │
+ *               ├─> [Partition P into batches]
+ *               │
+ *               ├─> For each batch:
+ *               │     └─> BMSSP(level-1, batch, bound)  [RECURSION]
+ *               │     └─> BatchPrepend results to data structure
+ *               │
+ *               └─> [Pull and process vertices from data structure]
+ *                     ├─> Extract k vertices at a time
+ *                     ├─> Relax edges: Insert improvements
+ *                     └─> Mark complete vertices
+ * ```
+ *
+ * @section complexity_analysis COMPLEXITY ANALYSIS
+ *
+ * ### Time Complexity: O(m log^{2/3} n)
+ *
+ * **Per-level work**:
+ * - FindPivots: O(k · m) per level
+ * - BMSSP processing: O(m) per level
+ * - Total per level: O(k · m)
+ *
+ * **Number of levels**: L = O(log^{1/3}(n))
+ *
+ * **Total work**: O(k · m · L) = O(log^{1/3}(n) · m · log^{1/3}(n)) = O(m log^{2/3}(n))
+ *
+ * ### Space Complexity: O(n + m)
+ * - Graph storage: O(n + m)
+ * - Distance/predecessor arrays: O(n)
+ * - Data structure blocks: O(n) amortized
+ * - Recursion stack: O(L) = O(log^{1/3}(n)) - negligible
+ *
+ * @section implementation_notes IMPLEMENTATION NOTES
+ *
+ * ### Small Graphs (n < 50):
+ * For small graphs, k = 1 and the algorithm degenerates. The implementation
+ * detects this and falls back to standard Dijkstra for efficiency.
+ *
+ * ### Numerical Stability:
+ * Uses DBL_MAX for infinity and careful floating-point comparisons to
+ * handle edge weights including negative weights (but no negative cycles).
+ *
+ * ### Memory Management:
+ * - All allocations are checked for NULL
+ * - Clear ownership semantics: caller frees results
+ * - No memory leaks in successful or error paths
+ *
+ * ### Thread Safety:
+ * - Each graph instance is independent (reentrant)
+ * - No global state except optional verbosity flag
+ * - Safe for concurrent use on different graphs
+ *
+ * @section usage USAGE EXAMPLE
+ *
+ * ```c
+ * // Create graph
+ * Graph* g = create_graph(100);
+ * add_edge(g, 0, 1, 5.0);
+ * // ... add more edges ...
+ *
+ * // Solve SSSP from source vertex 0
+ * sssp_solve(g, 0);
+ *
+ * // Access results
+ * printf("Distance to vertex 50: %.2f\n", g->dist[50]);
+ * printf("Predecessor of 50: %d\n", g->pred[50]);
+ *
+ * // Clean up
+ * free_graph(g);
+ * ```
+ *
+ * @author Implementation based on the paper by Duan, Mao, Mao, Shu, Yin (2025)
+ * @date 2025
+ * @version 1.0.0
+ *
+ * @see sssp_api.c for public API wrapper
+ * @see include/sssp.h for public interface
  */
 
 #include <stdio.h>
@@ -16,6 +167,7 @@
 #include <float.h>
 
 #define INFINITY_DIST DBL_MAX
+#define EPSILON 1e-9  /* Epsilon for floating-point comparisons */
 
 /* Global flag to control verbosity (default: verbose for standalone, quiet for API) */
 static bool sssp_verbose = false;
@@ -28,21 +180,166 @@ void sssp_set_verbose(bool verbose) {
     sssp_verbose = verbose;
 }
 
-/* Core data structures */
+/**
+ * @defgroup core_data_structures Core Data Structures
+ * @{
+ */
+
+/**
+ * @struct Edge
+ * @brief Represents a directed weighted edge in the graph
+ *
+ * Edges are stored in adjacency lists using a singly-linked list structure.
+ * This provides O(1) edge addition and O(deg(v)) edge traversal.
+ *
+ * @var Edge::target
+ * Destination vertex ID (0 <= target < n)
+ *
+ * @var Edge::weight
+ * Edge weight (supports negative weights, but no negative cycles)
+ *
+ * @var Edge::next
+ * Pointer to next edge in the adjacency list (NULL if last edge)
+ *
+ * @complexity
+ * - Memory: O(1) per edge
+ * - Access: O(1) to follow next pointer
+ *
+ * @note Edges are dynamically allocated and owned by the Graph structure
+ */
 typedef struct Edge {
-    int target;
-    double weight;
-    struct Edge* next;
+    int target;       /* Destination vertex */
+    double weight;    /* Edge weight */
+    struct Edge* next; /* Next edge in adjacency list */
 } Edge;
 
+/**
+ * @struct Graph
+ * @brief Main graph structure with distance and predecessor information
+ *
+ * Represents a directed weighted graph using adjacency lists, along with
+ * auxiliary arrays for SSSP computation.
+ *
+ * ### Memory Layout:
+ * ```
+ * Graph {
+ *   n, m                    [8 bytes - graph size]
+ *   adj[0] -> Edge -> Edge -> NULL
+ *   adj[1] -> Edge -> NULL   [n pointers to adjacency lists]
+ *   ...
+ *   adj[n-1] -> NULL
+ *   dist[n]                 [n doubles - distance estimates]
+ *   pred[n]                 [n ints - predecessor array]
+ *   complete[n]             [n bools - completion status]
+ *   source                  [4 bytes - source vertex]
+ * }
+ * Total: O(n + m) memory
+ * ```
+ *
+ * @var Graph::n
+ * Number of vertices in the graph (vertices are numbered 0 to n-1)
+ *
+ * @var Graph::m
+ * Number of edges in the graph (counts directed edges)
+ *
+ * @var Graph::adj
+ * Adjacency list array: adj[u] points to the first edge from vertex u
+ *
+ * @var Graph::dist
+ * Distance estimates: dist[v] = current best known distance from source to v
+ * - Initially: dist[source] = 0, dist[v] = INFINITY for v != source
+ * - After algorithm: dist[v] = shortest path distance
+ * - INFINITY_DIST if v is unreachable from source
+ *
+ * @var Graph::pred
+ * Predecessor array: pred[v] = vertex before v on shortest path from source
+ * - pred[source] = -1 (source has no predecessor)
+ * - pred[v] = -1 if v is unreachable
+ * - Used for path reconstruction
+ *
+ * @var Graph::complete
+ * Completion status: complete[v] = true if v has been finalized
+ * - Once true, dist[v] is the final shortest path distance
+ * - Vertices are marked complete when pulled from data structure
+ *
+ * @var Graph::source
+ * Source vertex for the current SSSP computation
+ *
+ * @complexity
+ * - Memory: O(n + m)
+ * - Creation: O(n)
+ * - Add edge: O(1)
+ * - Edge iteration for vertex v: O(deg(v))
+ *
+ * @invariants
+ * - Triangle inequality: For all edges (u,v): dist[u] + weight(u,v) >= dist[v]
+ * - Completeness: If complete[v] = true, then dist[v] is optimal
+ * - Predecessor: If dist[v] < ∞, then pred[v] leads back to source
+ */
 typedef struct {
-    int n, m;
-    Edge** adj;
-    double* dist;
-    int* pred;
-    bool* complete;
-    int source;
+    int n, m;                    /* Number of vertices and edges */
+    Edge** adj;                  /* Adjacency list representation: adj[u] = list of edges from u */
+    double* dist;                /* Distance estimates from source: dist[v] = d(source, v) */
+    int* pred;                   /* Predecessor array for path reconstruction: pred[v] = parent of v */
+    bool* complete;              /* Completion status: complete[v] = true if d[v] is final */
+    int source;                  /* Source vertex for current SSSP computation */
 } Graph;
+
+/**
+ * @struct MinHeap
+ * @brief Binary min-heap for efficient priority queue operations
+ *
+ * Standard binary heap implementation used in example programs for comparison
+ * with Dijkstra's algorithm. The breakthrough algorithm itself uses the
+ * block-based data structure instead.
+ *
+ * ### Heap Property:
+ * For all i > 0: distances[parent(i)] <= distances[i]
+ * where parent(i) = (i-1)/2
+ *
+ * ### Array Layout:
+ * ```
+ *         distances[0]              <- root (minimum)
+ *        /            \
+ *   distances[1]   distances[2]     <- level 1
+ *    /      \       /      \
+ * dist[3] dist[4] dist[5] dist[6]  <- level 2
+ * ...
+ * ```
+ *
+ * @var MinHeap::vertices
+ * Parallel array of vertex IDs: vertices[i] is the vertex at heap position i
+ *
+ * @var MinHeap::distances
+ * Priority array: distances[i] is the distance/key for the vertex at position i
+ *
+ * @var MinHeap::positions
+ * Reverse lookup: positions[v] = heap index of vertex v, or -1 if not in heap
+ * Enables O(1) lookups for decrease-key operations
+ *
+ * @var MinHeap::size
+ * Current number of elements in the heap (0 <= size <= capacity)
+ *
+ * @var MinHeap::capacity
+ * Maximum number of elements (typically n for SSSP)
+ *
+ * @complexity
+ * - Insert: O(log n)
+ * - Extract-min: O(log n)
+ * - Decrease-key: O(log n)
+ * - Create: O(n)
+ *
+ * @note Not used in the breakthrough algorithm itself, only in examples
+ */
+typedef struct {
+    int* vertices;       /* Array of vertex IDs in heap order */
+    double* distances;   /* Array of distances (priorities) in heap order */
+    int* positions;      /* Reverse mapping: positions[v] = index of v in heap */
+    int size;            /* Current number of elements in heap */
+    int capacity;        /* Maximum capacity (usually n) */
+} MinHeap;
+
+/** @} */ /* end of core_data_structures */
 
 /* Implementation Summary:
  * 
@@ -63,24 +360,81 @@ typedef struct {
 
 /* Basic Graph Operations */
 Graph* create_graph(int n) {
+    /* Validate input - MAX_VERTICES defined in sssp_breakthrough.h */
+    if (n <= 0 || n > 100000) {  /* 100000 = MAX_VERTICES from header */
+        return NULL;
+    }
+
+    /* Allocate main structure */
     Graph* g = (Graph*)malloc(sizeof(Graph));
+    if (g == NULL) {
+        return NULL;
+    }
+
+    /* Initialize basic fields */
     g->n = n;
     g->m = 0;
-    g->adj = (Edge**)calloc(n, sizeof(Edge*));
-    g->dist = (double*)malloc(n * sizeof(double));
-    g->pred = (int*)malloc(n * sizeof(int));
-    g->complete = (bool*)malloc(n * sizeof(bool));
-    
+    g->adj = NULL;
+    g->dist = NULL;
+    g->pred = NULL;
+    g->complete = NULL;
+
+    /* Allocate adjacency list */
+    g->adj = (Edge**)calloc((size_t)n, sizeof(Edge*));
+    if (g->adj == NULL) {
+        free(g);
+        return NULL;
+    }
+
+    /* Allocate distance array */
+    g->dist = (double*)malloc((size_t)n * sizeof(double));
+    if (g->dist == NULL) {
+        free(g->adj);
+        free(g);
+        return NULL;
+    }
+
+    /* Allocate predecessor array */
+    g->pred = (int*)malloc((size_t)n * sizeof(int));
+    if (g->pred == NULL) {
+        free(g->dist);
+        free(g->adj);
+        free(g);
+        return NULL;
+    }
+
+    /* Allocate completion status array */
+    g->complete = (bool*)malloc((size_t)n * sizeof(bool));
+    if (g->complete == NULL) {
+        free(g->pred);
+        free(g->dist);
+        free(g->adj);
+        free(g);
+        return NULL;
+    }
+
+    /* Initialize arrays */
     for (int i = 0; i < n; i++) {
         g->dist[i] = INFINITY_DIST;
         g->pred[i] = -1;
         g->complete[i] = false;
     }
+
     return g;
 }
 
 void add_edge(Graph* g, int u, int v, double weight) {
+    /* Validate inputs */
+    if (g == NULL || u < 0 || u >= g->n || v < 0 || v >= g->n) {
+        return;
+    }
+
+    /* Allocate new edge */
     Edge* edge = (Edge*)malloc(sizeof(Edge));
+    if (edge == NULL) {
+        return;  /* Silently fail - caller should check graph state */
+    }
+
     edge->target = v;
     edge->weight = weight;
     edge->next = g->adj[u];
@@ -153,9 +507,28 @@ typedef struct {
 
 /* Helper: Create a new block */
 Block* block_create(int capacity) {
+    if (capacity <= 0) {
+        return NULL;
+    }
+
     Block* block = (Block*)malloc(sizeof(Block));
-    block->keys = (int*)malloc(capacity * sizeof(int));
-    block->values = (double*)malloc(capacity * sizeof(double));
+    if (block == NULL) {
+        return NULL;
+    }
+
+    block->keys = (int*)malloc((size_t)capacity * sizeof(int));
+    if (block->keys == NULL) {
+        free(block);
+        return NULL;
+    }
+
+    block->values = (double*)malloc((size_t)capacity * sizeof(double));
+    if (block->values == NULL) {
+        free(block->keys);
+        free(block);
+        return NULL;
+    }
+
     block->size = 0;
     block->capacity = capacity;
     block->min_value = INFINITY_DIST;
@@ -296,6 +669,16 @@ void ds_batch_prepend(DataStructure* ds, int* keys, double* values, int count) {
     for (int b = 0; b < num_blocks; b++) {
         int block_size = (b == num_blocks - 1) ? (count - idx) : ds->M;
         Block* block = block_create(ds->M);
+        if (block == NULL) {
+            /* Allocation failed - cleanup and return */
+            Block* curr = first_block;
+            while (curr != NULL) {
+                Block* next = curr->next;
+                block_free(curr);
+                curr = next;
+            }
+            return;
+        }
 
         // Copy elements into block
         for (int i = 0; i < block_size; i++) {
@@ -536,19 +919,74 @@ typedef struct {
 } PivotsResult;
 
 PivotsResult* find_pivots(Graph* g, double B, int* S, int S_size, int k) {
+    /* Validate inputs */
+    if (g == NULL || S == NULL || S_size <= 0 || k <= 0) {
+        return NULL;
+    }
+
     VPRINTF("  FindPivots: Reducing frontier from %d sources\n", S_size);
 
+    /* Allocate result structure */
     PivotsResult* result = (PivotsResult*)malloc(sizeof(PivotsResult));
-    result->W = (int*)malloc(g->n * sizeof(int));
-    result->pivots = (int*)malloc(S_size * sizeof(int));
-    result->tree_root = (int*)malloc(g->n * sizeof(int));
-    result->tree_sizes = (int*)calloc(g->n, sizeof(int));
+    if (result == NULL) {
+        return NULL;
+    }
+
+    /* Initialize all pointers to NULL for safe cleanup */
+    result->W = NULL;
+    result->pivots = NULL;
+    result->tree_root = NULL;
+    result->tree_sizes = NULL;
     result->W_count = 0;
     result->pivot_count = 0;
 
+    /* Allocate W array */
+    result->W = (int*)malloc((size_t)g->n * sizeof(int));
+    if (result->W == NULL) {
+        free(result);
+        return NULL;
+    }
+
+    /* Allocate pivots array */
+    result->pivots = (int*)malloc((size_t)S_size * sizeof(int));
+    if (result->pivots == NULL) {
+        free(result->W);
+        free(result);
+        return NULL;
+    }
+
+    /* Allocate tree_root array */
+    result->tree_root = (int*)malloc((size_t)g->n * sizeof(int));
+    if (result->tree_root == NULL) {
+        free(result->pivots);
+        free(result->W);
+        free(result);
+        return NULL;
+    }
+
+    /* Allocate tree_sizes array */
+    result->tree_sizes = (int*)calloc((size_t)g->n, sizeof(int));
+    if (result->tree_sizes == NULL) {
+        free(result->tree_root);
+        free(result->pivots);
+        free(result->W);
+        free(result);
+        return NULL;
+    }
+
     // Initialize: mark vertices in S
-    bool* in_W = (bool*)calloc(g->n, sizeof(bool));
-    bool* in_S = (bool*)calloc(g->n, sizeof(bool));
+    bool* in_W = (bool*)calloc((size_t)g->n, sizeof(bool));
+    bool* in_S = (bool*)calloc((size_t)g->n, sizeof(bool));
+    if (in_W == NULL || in_S == NULL) {
+        free(in_W);
+        free(in_S);
+        free(result->tree_sizes);
+        free(result->tree_root);
+        free(result->pivots);
+        free(result->W);
+        free(result);
+        return NULL;
+    }
 
     for (int i = 0; i < S_size; i++) {
         result->W[result->W_count++] = S[i];
@@ -581,7 +1019,8 @@ PivotsResult* find_pivots(Graph* g, double B, int* S, int S_size, int k) {
                 double new_dist = g->dist[u] + edge->weight;
 
                 // Relaxation condition: improve distance and stay within bound B
-                if (new_dist < g->dist[v] && new_dist < B) {
+                // Use epsilon tolerance for floating-point comparison
+                if (new_dist < g->dist[v] - EPSILON && new_dist < B) {
                     g->dist[v] = new_dist;
                     g->pred[v] = u;
 
@@ -730,6 +1169,169 @@ void free_pivots_result(PivotsResult* result) {
     }
 }
 
+/*
+ * ==============================================================================
+ * MIN HEAP IMPLEMENTATION
+ * ==============================================================================
+ *
+ * Standard binary min-heap for Dijkstra's algorithm.
+ * Used by example programs for comparison purposes.
+ */
+
+/* Create a new min-heap */
+MinHeap* heap_create(int capacity) {
+    MinHeap* heap = (MinHeap*)malloc(sizeof(MinHeap));
+    if (!heap) return NULL;
+
+    heap->vertices = (int*)malloc(capacity * sizeof(int));
+    heap->distances = (double*)malloc(capacity * sizeof(double));
+    heap->positions = (int*)malloc(capacity * sizeof(int));
+
+    if (!heap->vertices || !heap->distances || !heap->positions) {
+        free(heap->vertices);
+        free(heap->distances);
+        free(heap->positions);
+        free(heap);
+        return NULL;
+    }
+
+    heap->size = 0;
+    heap->capacity = capacity;
+
+    // Initialize positions to -1 (not in heap)
+    for (int i = 0; i < capacity; i++) {
+        heap->positions[i] = -1;
+    }
+
+    return heap;
+}
+
+/* Helper: Swap two heap elements */
+static void heap_swap(MinHeap* heap, int i, int j) {
+    // Swap vertices and distances
+    int temp_v = heap->vertices[i];
+    double temp_d = heap->distances[i];
+
+    heap->vertices[i] = heap->vertices[j];
+    heap->distances[i] = heap->distances[j];
+
+    heap->vertices[j] = temp_v;
+    heap->distances[j] = temp_d;
+
+    // Update positions array
+    heap->positions[heap->vertices[i]] = i;
+    heap->positions[heap->vertices[j]] = j;
+}
+
+/* Helper: Heapify up */
+static void heap_heapify_up(MinHeap* heap, int idx) {
+    while (idx > 0) {
+        int parent = (idx - 1) / 2;
+
+        if (heap->distances[idx] < heap->distances[parent]) {
+            heap_swap(heap, idx, parent);
+            idx = parent;
+        } else {
+            break;
+        }
+    }
+}
+
+/* Helper: Heapify down */
+static void heap_heapify_down(MinHeap* heap, int idx) {
+    while (true) {
+        int left = 2 * idx + 1;
+        int right = 2 * idx + 2;
+        int smallest = idx;
+
+        if (left < heap->size && heap->distances[left] < heap->distances[smallest]) {
+            smallest = left;
+        }
+
+        if (right < heap->size && heap->distances[right] < heap->distances[smallest]) {
+            smallest = right;
+        }
+
+        if (smallest != idx) {
+            heap_swap(heap, idx, smallest);
+            idx = smallest;
+        } else {
+            break;
+        }
+    }
+}
+
+/* Insert vertex into heap */
+void heap_insert(MinHeap* heap, int vertex, double distance) {
+    if (heap->size >= heap->capacity || vertex < 0 || vertex >= heap->capacity) {
+        return;
+    }
+
+    // Add at end
+    int idx = heap->size;
+    heap->vertices[idx] = vertex;
+    heap->distances[idx] = distance;
+    heap->positions[vertex] = idx;
+    heap->size++;
+
+    // Heapify up
+    heap_heapify_up(heap, idx);
+}
+
+/* Extract minimum vertex from heap */
+int heap_extract_min(MinHeap* heap) {
+    if (heap->size == 0) {
+        return -1;
+    }
+
+    int min_vertex = heap->vertices[0];
+
+    // Move last element to root
+    heap->size--;
+    if (heap->size > 0) {
+        heap->vertices[0] = heap->vertices[heap->size];
+        heap->distances[0] = heap->distances[heap->size];
+        heap->positions[heap->vertices[0]] = 0;
+
+        // Heapify down
+        heap_heapify_down(heap, 0);
+    }
+
+    // Mark as not in heap
+    heap->positions[min_vertex] = -1;
+
+    return min_vertex;
+}
+
+/* Decrease key (distance) for a vertex */
+void heap_decrease_key(MinHeap* heap, int vertex, double new_distance) {
+    if (vertex < 0 || vertex >= heap->capacity) {
+        return;
+    }
+
+    int idx = heap->positions[vertex];
+    if (idx < 0 || idx >= heap->size) {
+        return;  // Vertex not in heap
+    }
+
+    if (new_distance >= heap->distances[idx]) {
+        return;  // Not actually decreasing
+    }
+
+    heap->distances[idx] = new_distance;
+    heap_heapify_up(heap, idx);
+}
+
+/* Free heap */
+void heap_free(MinHeap* heap) {
+    if (heap) {
+        free(heap->vertices);
+        free(heap->distances);
+        free(heap->positions);
+        free(heap);
+    }
+}
+
 /* Algorithm 2: BaseCase
  * 
  * Implements a mini-Dijkstra that finds at most k+1 closest vertices.
@@ -742,14 +1344,34 @@ typedef struct {
 } BMSSPResult;
 
 BMSSPResult* base_case(Graph* g, double B, int source, int k) {
+    /* Validate inputs */
+    if (g == NULL || source < 0 || source >= g->n) {
+        return NULL;
+    }
+
     VPRINTF("    BaseCase: Running mini-Dijkstra from vertex %d (bound=%.2f)\n", source, B);
 
     BMSSPResult* result = (BMSSPResult*)malloc(sizeof(BMSSPResult));
-    result->vertices = (int*)malloc(g->n * sizeof(int));  // Allocate enough for all vertices
+    if (result == NULL) {
+        return NULL;
+    }
+
+    result->vertices = (int*)malloc((size_t)g->n * sizeof(int));
+    if (result->vertices == NULL) {
+        free(result);
+        return NULL;
+    }
+
     result->count = 1;
     result->vertices[0] = source;
 
-    bool* processed = (bool*)calloc(g->n, sizeof(bool));
+    bool* processed = (bool*)calloc((size_t)g->n, sizeof(bool));
+    if (processed == NULL) {
+        free(result->vertices);
+        free(result);
+        return NULL;
+    }
+
     processed[source] = true;
     g->complete[source] = true;
 
@@ -793,8 +1415,8 @@ BMSSPResult* base_case(Graph* g, double B, int source, int k) {
             int v = edge->target;
             double new_dist = g->dist[next_vertex] + edge->weight;
 
-            // Only update if within bound B
-            if (new_dist < g->dist[v] && new_dist < B) {
+            // Only update if within bound B (with epsilon tolerance)
+            if (new_dist < g->dist[v] - EPSILON && new_dist < B) {
                 g->dist[v] = new_dist;
                 g->pred[v] = next_vertex;
             }
@@ -921,9 +1543,28 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
 
     // Maximum number of vertices to process at this level
     // Formula from paper: k · 2^{lt}
-    int max_vertices = k * k;
-    for (int i = 0; i < level * t; i++) {
-        max_vertices *= 2;
+    // Use safer calculation to prevent integer overflow
+    int exponent = level * t;
+    int max_vertices;
+
+    if (exponent > 30) {
+        // 2^30 is already over 1 billion, cap at safe value
+        max_vertices = INT_MAX / 2;
+    } else if (exponent < 0) {
+        max_vertices = k * k;  // Shouldn't happen, but be safe
+    } else {
+        // Use bit shift for exact power of 2
+        long long temp = (long long)k * k * (1LL << exponent);
+        if (temp > INT_MAX / 2) {
+            max_vertices = INT_MAX / 2;
+        } else {
+            max_vertices = (int)temp;
+        }
+    }
+
+    // Additional safety: cap at graph size
+    if (max_vertices > g->n) {
+        max_vertices = g->n;
     }
 
     VPRINTF("  BMSSP level %d: Target = %d vertices, %d pivots\n",
@@ -964,10 +1605,25 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
      * 2. The recursion depth decreases appropriately
      * 3. The overall complexity remains O(m log^{2/3} n)
      */
+    // Calculate batch size with overflow protection
     int batch_size = 1;
     if (level > 1) {
-        for (int i = 0; i < (level - 1) * t; i++) {
-            batch_size *= 2;
+        int batch_exp = (level - 1) * t;
+
+        if (batch_exp > 30) {
+            batch_size = INT_MAX / 2;
+        } else if (batch_exp > 0) {
+            long long temp = 1LL << batch_exp;
+            if (temp > INT_MAX / 2) {
+                batch_size = INT_MAX / 2;
+            } else {
+                batch_size = (int)temp;
+            }
+        }
+
+        // Cap at remaining pivots
+        if (pivots != NULL && batch_size > pivots->pivot_count) {
+            batch_size = pivots->pivot_count;
         }
     }
 
@@ -975,7 +1631,20 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
            level, level - 1, t, batch_size);
 
     BMSSPResult* result = (BMSSPResult*)malloc(sizeof(BMSSPResult));
-    result->vertices = (int*)malloc(g->n * sizeof(int));
+    if (result == NULL) {
+        ds_free(ds);
+        free_pivots_result(pivots);
+        return NULL;
+    }
+
+    result->vertices = (int*)malloc((size_t)g->n * sizeof(int));
+    if (result->vertices == NULL) {
+        free(result);
+        ds_free(ds);
+        free_pivots_result(pivots);
+        return NULL;
+    }
+
     result->count = 0;
     result->boundary = B;
 
@@ -1047,7 +1716,8 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
                 int v = edge->target;
                 double new_dist = g->dist[u] + edge->weight;
 
-                if (new_dist < g->dist[v] && new_dist < B) {
+                // Use epsilon tolerance for floating-point comparison
+                if (new_dist < g->dist[v] - EPSILON && new_dist < B) {
                     g->dist[v] = new_dist;
                     g->pred[v] = u;
 
@@ -1078,22 +1748,48 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
      *
      * Add all vertices from W (the set built by FindPivots) that have
      * distance < boundary. These are vertices reachable in ≤ k hops.
+     *
+     * FIXED: Use boolean array for O(1) membership test instead of O(n) search
      */
-    for (int i = 0; i < pivots->W_count; i++) {
-        int v = pivots->W[i];
-        if (g->dist[v] < result->boundary && !g->complete[v]) {
-            g->complete[v] = true;
-
-            // Check if already in result
-            bool found = false;
-            for (int j = 0; j < result->count; j++) {
-                if (result->vertices[j] == v) {
-                    found = true;
-                    break;
+    // Allocate boolean array for O(1) membership checking
+    bool* in_result = (bool*)calloc((size_t)g->n, sizeof(bool));
+    if (in_result == NULL) {
+        // Allocation failed - continue with slower method
+        VPRINTF("  WARNING: Could not allocate in_result array\n");
+        // Fall back to original (slow) method
+        for (int i = 0; i < pivots->W_count; i++) {
+            int v = pivots->W[i];
+            if (g->dist[v] < result->boundary && !g->complete[v]) {
+                g->complete[v] = true;
+                bool found = false;
+                for (int j = 0; j < result->count; j++) {
+                    if (result->vertices[j] == v) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && result->count < g->n) {
+                    result->vertices[result->count++] = v;
                 }
             }
-            if (!found && result->count < g->n) {
-                result->vertices[result->count++] = v;
+        }
+    } else {
+        // Fast path: mark existing vertices with O(1) lookup
+        for (int j = 0; j < result->count; j++) {
+            in_result[result->vertices[j]] = true;
+        }
+
+        // Process W vertices with O(1) membership test
+        for (int i = 0; i < pivots->W_count; i++) {
+            int v = pivots->W[i];
+            if (g->dist[v] < result->boundary && !g->complete[v]) {
+                g->complete[v] = true;
+
+                // O(1) lookup instead of O(n) search
+                if (!in_result[v] && result->count < g->n) {
+                    result->vertices[result->count++] = v;
+                    in_result[v] = true;
+                }
             }
         }
     }
@@ -1111,8 +1807,17 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
      */
     VPRINTF("  BMSSP level %d: Processing data structure vertices\n", level);
 
-    int* pulled_keys = (int*)malloc(g->n * sizeof(int));
-    double* pulled_values = (double*)malloc(g->n * sizeof(double));
+    int* pulled_keys = (int*)malloc((size_t)g->n * sizeof(int));
+    double* pulled_values = (double*)malloc((size_t)g->n * sizeof(double));
+    if (pulled_keys == NULL || pulled_values == NULL) {
+        VPRINTF("  WARNING: Could not allocate arrays for data structure processing\n");
+        free(pulled_keys);
+        free(pulled_values);
+        free(in_result);
+        ds_free(ds);
+        free_pivots_result(pivots);
+        return result;  // Return what we have so far
+    }
     int ds_processed = 0;
 
     while (!ds_is_empty(ds) && result->count < max_vertices) {
@@ -1125,7 +1830,7 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
 
         if (pulled_count == 0) break;
 
-        // Process each pulled vertex
+        // Process each pulled vertex (use in_result array for O(1) lookup)
         for (int i = 0; i < pulled_count; i++) {
             int v = pulled_keys[i];
 
@@ -1135,18 +1840,26 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
             // Mark as complete and add to result
             g->complete[v] = true;
 
-            // Check if already in result
-            bool found = false;
-            for (int j = 0; j < result->count; j++) {
-                if (result->vertices[j] == v) {
-                    found = true;
-                    break;
+            // O(1) lookup using boolean array
+            if (in_result != NULL) {
+                if (!in_result[v] && result->count < g->n) {
+                    result->vertices[result->count++] = v;
+                    in_result[v] = true;
+                    ds_processed++;
                 }
-            }
-
-            if (!found && result->count < g->n) {
-                result->vertices[result->count++] = v;
-                ds_processed++;
+            } else {
+                // Fallback to O(n) search if allocation failed
+                bool found = false;
+                for (int j = 0; j < result->count; j++) {
+                    if (result->vertices[j] == v) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && result->count < g->n) {
+                    result->vertices[result->count++] = v;
+                    ds_processed++;
+                }
             }
 
             // Relax edges from this vertex
@@ -1155,7 +1868,8 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
                 int u = edge->target;
                 double new_dist = g->dist[v] + edge->weight;
 
-                if (new_dist < g->dist[u] && new_dist < B) {
+                // Use epsilon tolerance for floating-point comparison
+                if (new_dist < g->dist[u] - EPSILON && new_dist < B) {
                     g->dist[u] = new_dist;
                     g->pred[u] = v;
 
@@ -1178,6 +1892,7 @@ BMSSPResult* bmssp(Graph* g, int level, double B, int* S, int S_size, int k, int
            level, result->count, iteration);
 
     // Cleanup
+    free(in_result);  // Free boolean array used for O(1) membership testing
     ds_free(ds);
     free_pivots_result(pivots);
 

@@ -116,7 +116,8 @@ void demo_timing(void) {
     printf("\n2. Timing graph generation...\n");
     timer_start(timer);
 
-    Graph* graph = graph_generate_random(&graph_gen_params_default(1000, 5000));
+    GraphGenParams params = graph_gen_params_default(1000, 5000);
+    Graph* graph = graph_generate_random(&params);
 
     double elapsed = timer_stop(timer);
 
@@ -144,7 +145,8 @@ void demo_validation(void) {
 
     // Create and validate a simple graph
     printf("1. Creating and validating a simple graph...\n");
-    Graph* graph = graph_generate_random(&graph_gen_params_default(20, 40));
+    GraphGenParams params = graph_gen_params_default(20, 40);
+    Graph* graph = graph_generate_random(&params);
 
     if (graph_validate(graph)) {
         printf("   Graph structure is valid\n");
@@ -183,7 +185,8 @@ void demo_memory_tracking(void) {
     memory_print_stats();
 
     printf("\n2. Allocating graph...\n");
-    Graph* graph = graph_generate_random(&graph_gen_params_default(500, 2000));
+    GraphGenParams params = graph_gen_params_default(500, 2000);
+    Graph* graph = graph_generate_random(&params);
     memory_print_stats();
 
     printf("\n3. Allocating another graph...\n");

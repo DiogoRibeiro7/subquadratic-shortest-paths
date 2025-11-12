@@ -3,15 +3,16 @@
  * @brief Public API for the SSSP Breakthrough Algorithm
  *
  * This header provides a clean, simple interface for computing single-source
- * shortest paths using the breakthrough O(m^{1+o(1)}) algorithm from the paper
- * "Single-Source Shortest Paths in O(m^{1+epsilon}) Time" by Bernstein (2024).
+ * shortest paths using the breakthrough O(m log^{2/3} n) algorithm from the paper
+ * "Breaking the Sorting Barrier for Directed Single-Source Shortest Paths"
+ * by Duan, Mao, Mao, Shu, and Yin (2025).
  *
  * The algorithm achieves subquadratic time complexity for shortest path
  * computation on graphs with arbitrary edge weights (including negative weights,
  * but no negative cycles).
  *
  * @version 1.0.0
- * @date 2024
+ * @date 2025
  *
  * @example
  * @code
@@ -201,11 +202,11 @@ void sssp_graph_destroy(sssp_graph_t* graph);
  * @brief Solve single-source shortest paths from a given source vertex
  *
  * Computes shortest paths from the source vertex to all other vertices
- * using the breakthrough O(m^{1+o(1)}) algorithm. The algorithm handles
+ * using the breakthrough O(m log^{2/3} n) algorithm. The algorithm handles
  * graphs with negative edge weights but will detect negative cycles.
  *
- * Time complexity: O(m^{1+o(1)}) where m is the number of edges
- * Space complexity: O(n + m) where n is the number of vertices
+ * Time complexity: O(m log^{2/3} n) where m is the number of edges and n is the number of vertices
+ * Space complexity: O(n + m)
  *
  * @param graph Pointer to graph structure (must not be NULL)
  * @param source Source vertex ID (0 <= source < num_vertices)
@@ -216,22 +217,6 @@ void sssp_graph_destroy(sssp_graph_t* graph);
  * @see sssp_result_destroy(), sssp_result_get_distance(), sssp_result_get_predecessor()
  */
 sssp_result_t* sssp_solve(sssp_graph_t* graph, int source);
-
-/**
- * @brief Solve SSSP with custom parameters
- *
- * Advanced version of sssp_solve() that allows customization of algorithm parameters.
- *
- * @param graph Pointer to graph structure (must not be NULL)
- * @param source Source vertex ID
- * @param k Recursion parameter (default: computed from graph size)
- * @param t Time parameter (default: computed from graph size)
- * @return Pointer to result structure, or NULL on failure
- *
- * @note Most users should use sssp_solve() instead
- * @see sssp_solve()
- */
-sssp_result_t* sssp_solve_advanced(sssp_graph_t* graph, int source, int k, int t);
 
 /** @} */
 
