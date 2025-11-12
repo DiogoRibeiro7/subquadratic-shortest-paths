@@ -89,7 +89,7 @@ jobs:
         pkg-config --modversion libsssp || true
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v5
       with:
         name: libsssp-${{ matrix.os }}-${{ matrix.compiler }}
         path: build/bin/*
@@ -288,7 +288,7 @@ jobs:
       run: cpack -G RPM
 
     - name: Upload packages
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v5
       with:
         name: packages
         path: |
