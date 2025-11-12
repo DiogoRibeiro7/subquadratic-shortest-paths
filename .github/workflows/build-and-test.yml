@@ -45,7 +45,7 @@ jobs:
             cxx: clang++-14
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Install dependencies
       run: |
@@ -113,7 +113,7 @@ jobs:
             cmake_flag: SSSP_ENABLE_TSAN
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Install dependencies
       run: |
@@ -150,7 +150,7 @@ jobs:
         arch: [x86_64, arm64, universal]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Install dependencies
       run: brew install cmake ninja pkg-config
@@ -196,7 +196,7 @@ jobs:
             generator: "MinGW Makefiles"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Setup MSVC
       if: matrix.toolset == 'MSVC'
@@ -263,7 +263,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Install packaging dependencies
       run: |
@@ -304,7 +304,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
     - name: Setup Python
       uses: actions/setup-python@v4
