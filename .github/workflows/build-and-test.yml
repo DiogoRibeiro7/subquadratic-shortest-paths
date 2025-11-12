@@ -200,7 +200,7 @@ jobs:
 
     - name: Setup MSVC
       if: matrix.toolset == 'MSVC'
-      uses: microsoft/setup-msbuild@v1
+      uses: microsoft/setup-msbuild@v2
 
     - name: Setup MinGW
       if: matrix.toolset == 'MinGW'
