@@ -45,7 +45,7 @@ jobs:
             cxx: clang++-14
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install dependencies
       run: |
@@ -113,7 +113,7 @@ jobs:
             cmake_flag: SSSP_ENABLE_TSAN
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install dependencies
       run: |
@@ -147,7 +147,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install packaging dependencies
       run: |
@@ -188,7 +188,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Setup Python
       uses: actions/setup-python@v6
